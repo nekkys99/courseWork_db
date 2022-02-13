@@ -1,0 +1,65 @@
+html, body{
+	font-family: 'Arial';
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+}
+
+a{
+	color: #65ad92 ;
+	text-decoration: none;
+}
+a:hover {
+	color: #CC0000;
+	text-decoration: underline;
+}
+
+.clear {clear: both;}
+
+ul.mainmenu {
+	list-style: none;
+	background: #a6416e;
+	height: 60px;
+	margin:0 ;
+	padding: 0;
+	color: #73fdc6;
+	font-size: 20px;
+	overflow: hidden;
+}
+ul.mainmenu li {
+	float: left;
+	margin: 18px 40px 0 50px;
+}
+ul.mainmenu li.last {float: right;}
+
+ul.mainmenu li a {
+	color: #fdc073;
+	text-decoration: none;
+}
+
+ul.mainmenu li a:hover {
+	color #fda83d;
+}
+
+div.content{
+	margin: 10px;
+}
+.form-contact label {
+	display: inline-block;
+	min-width: 80px;
+}
+.form-contact p{ margin: 10px 0 10px 0; }
+.form-contact input [type=submit],textarea{
+	font-size: 16px;
+}
+
+.flash {padding: 10px;}
+.flash.success {
+	border: 1px solid #21db56;
+	background: #AEFFC5;
+}
+.flash.error {
+	border: 1px solid #ff4343;
+	background: #ff9c9c ;
+}
