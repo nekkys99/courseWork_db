@@ -33,6 +33,17 @@ def get_db():
     return g.link_db
 
 
+dbase = None
+
+
+# Создание перехватчика запросов
+@app.before_request
+def before_request():
+    global dbase
+    db = get_db()
+    dbase = FDataBase(db)
+
+
 menu = [{"name": "О сайте", "url": "about"},
         {"name": "Рецептики", "url": "recipes"},
         {"name": "Регистрация", "url": "registrate"},
@@ -77,19 +88,17 @@ def pageNotFound(error):
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
-    if 'userLogged' in session:
-        return redirect(url_for('profile', username=session['userLogged']))
-    elif request.method == 'POST' and request.form['username'] == "malinov" and request.form['psw'] == '123':
-        session['userLogged'] = request.form['username']
-        return redirect(url_for('profile', username=session['userLogged']))
-    return render_template("login.html", title="Авторизация", menu=menu)
+    return render_template("login.html", menu=dbase.getMenu(),title="Авторизация")
+
+
+@app.route("/register")
+def register():
+    return render_template("register.html",menu=dbase.getMenu(),title="Регистрация")
 
 
 @app.route("/testdb")
 def test_data():
-    db = get_db()
-    dbase = FDataBase(db)
-    return render_template('testdb.html', menu=dbase.getMenu())
+    return render_template('testdb.html', menu=dbase.getMenu(), posts=dbase.getPostsAnonce())
 
 
 @app.teardown_appcontext
@@ -100,12 +109,9 @@ def close_db(error):
 
 @app.route("/add_post", methods=["POST", "GET"])
 def addPost():
-    db = get_db()
-    dbase = FDataBase(db)
-
     if request.method == "POST":
         if len(request.form['name']) > 4 and len(request.form['post']) > 10:
-            res = dbase.addPost(request.form['name'], request.form['post'])
+            res = dbase.addPost(request.form['name'], request.form['post'], request.form['url'])
             if not res:
                 flash('Ошибка добавления статьи', category='error')
             else:
@@ -116,14 +122,13 @@ def addPost():
     return render_template('add_post.html', menu=dbase.getMenu(), title="Добавление статьи")
 
 
-@app.route("/post/<int:id_post>")
-def showPost(id_post):
-    db = get_db()
-    dbase = FDataBase(db)
-    title, post = dbase.getPost(id_post)
+@app.route("/post/<alias>")
+def showPost(alias):
+    title, post = dbase.getPost(alias)
     if not title:
         abort(404)
-    return render_template('post.html',menu=dbase.getMenu(),title=title,post=post)
+
+    return render_template('post.html', menu=dbase.getMenu(), title=title, post=post)
 
 
 if __name__ == "__main__":
