@@ -2,7 +2,11 @@ import sqlite3
 import os
 from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g
 from FDataBase import FDataBase
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager,login_user,login_required
+from UserLogin import UserLogin
 
+# конфига датабэйз
 DATABASE = '/tmp/flsite.db'
 DEBUG = True
 SECRET_KEY = 'fasodjo1iojdasiou092310ajsdp/,m,jjpasdo443'
@@ -11,6 +15,14 @@ app = Flask(__name__)
 # app.config['SECRET_KEY'] = 'fgfgsfgsf21fg214fgfg31sff33as1'
 app.config.from_object(__name__)
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
+
+login_manager = LoginManager(app)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    print("load_user")
+    return UserLogin().fromDB(user_id, dbase)
 
 
 def connect_db():
@@ -88,16 +100,38 @@ def pageNotFound(error):
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
-    return render_template("login.html", menu=dbase.getMenu(),title="Авторизация")
+    if request.method == "POST":
+        user = dbase.getUserByEmail(request.form['email'])
+        if user and check_password_hash(user['psw'], request.form['psw']):
+            userlogin = UserLogin().create(user)
+            login_user(userlogin)
+            return redirect(url_for('testdb'))
+
+        flash("Неверная пара логин/пароль", "error")
+
+    return render_template("login.html", menu=dbase.getMenu(), title="Авторизация")
 
 
-@app.route("/register")
+@app.route("/register", methods=["POST", "GET"])
 def register():
-    return render_template("register.html",menu=dbase.getMenu(),title="Регистрация")
+    if request.method == "POST":
+        if len(request.form['name']) > 4 and len(request.form['email']) > 4 \
+                and len(request.form['psw']) > 4 and request.form['psw'] == request.form['psw2']:
+            hash = generate_password_hash(request.form['psw'])
+            res = dbase.addUser(request.form['name'], request.form['email'], hash)
+            if res:
+                flash("Ты в нашей тусе,colledge boy!", "success")
+                return redirect(url_for('login'))
+            else:
+                flash("Почта уже использована", "error")
+        else:
+            flash("Ошибся с заполнением полей,друг,попробуй еще!","error")
+
+    return render_template("register.html", menu=dbase.getMenu(), title="Регистрация")
 
 
 @app.route("/testdb")
-def test_data():
+def testdb():
     return render_template('testdb.html', menu=dbase.getMenu(), posts=dbase.getPostsAnonce())
 
 
@@ -123,6 +157,7 @@ def addPost():
 
 
 @app.route("/post/<alias>")
+@login_required
 def showPost(alias):
     title, post = dbase.getPost(alias)
     if not title:
