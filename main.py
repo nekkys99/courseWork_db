@@ -1,15 +1,17 @@
 import sqlite3
 import os
-from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g
+from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g ,make_response
 from FDataBase import FDataBase
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager,login_user,login_required
+from flask_login import LoginManager,login_user,login_required,logout_user,current_user
 from UserLogin import UserLogin
 
 # конфига датабэйз
 DATABASE = '/tmp/flsite.db'
 DEBUG = True
 SECRET_KEY = 'fasodjo1iojdasiou092310ajsdp/,m,jjpasdo443'
+MAX_CONTENT_LENGTH = 1024 * 1024
+
 
 app = Flask(__name__)
 # app.config['SECRET_KEY'] = 'fgfgsfgsf21fg214fgfg31sff33as1'
@@ -17,7 +19,9 @@ app.config.from_object(__name__)
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
 
 login_manager = LoginManager(app)
-
+login_manager.login_view ='login'
+login_manager.login_message ='Для доступа к информации необходимо авторизоватся'
+login_manager.login_message_category = "success"
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -75,13 +79,6 @@ def about():
     return render_template("about.html", title="О сайте", menu=menu)
 
 
-@app.route("/profile/<username>")
-def profile(username):
-    if 'userLogged' not in session or session['userLogged'] != username:
-        abort(401)
-    return f"Пользватель: {username}"
-
-
 @app.route("/contact", methods=["POST", "GET"])
 def contact():
     if request.method == 'POST':
@@ -100,12 +97,16 @@ def pageNotFound(error):
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('profile'))
+
     if request.method == "POST":
         user = dbase.getUserByEmail(request.form['email'])
         if user and check_password_hash(user['psw'], request.form['psw']):
             userlogin = UserLogin().create(user)
-            login_user(userlogin)
-            return redirect(url_for('testdb'))
+            rm = True if request.form.get('remainme') else False
+            login_user(userlogin, remember=rm)
+            return redirect(request.args.get("next") or url_for("profile"))
 
         flash("Неверная пара логин/пароль", "error")
 
@@ -166,5 +167,47 @@ def showPost(alias):
     return render_template('post.html', menu=dbase.getMenu(), title=title, post=post)
 
 
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash("Вы вышли из профиля","success")
+    return redirect(url_for('login'))
+
+
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html',menu=dbase.getMenu(),title='Профиль')
+
+
+@app.route('/userava')
+@login_required
+def userava():
+    img = current_user.getAvatar(app)
+    if not img:
+        return ""
+    h = make_response(img)
+    h.headers['Content-Type'] = 'image/png'
+    return h
+
+
+@app.route('/upload',methods =["POST","GET"])
+@login_required
+def upload():
+    if request.method == 'POST':
+        file = request.files['file']
+        if file and current_user.verifyExt(file.filename):
+            try:
+                img = file.read()
+                res = dbase.updateUserAvatar(img,current_user.get_id())
+                if not res:
+                    flash("Ошибка обновления аватара профиля","error")
+                flash("Аватар обновлен","success")
+            except FileNotFoundError as e:
+                flash("Ошибка чтения файла","error")
+        else:
+            flash("Ошибка обновления аватара","error")
+    return redirect(url_for('profile'))
 if __name__ == "__main__":
     app.run(debug=True)
