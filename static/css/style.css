@@ -74,6 +74,13 @@ div.content{
 	font-size: 16px;
 }
 
+.form-contact .invalid {
+	background: #FF9898;
+}
+.form-contact .invalid-feedbak {
+	color: #CC0000;
+}
+
 .flash {padding: 10px;}
 .flash.success {
 	border: 1px solid #21db56;
@@ -116,8 +123,8 @@ ul.profile-info {
 ul.profile-info li {margin-top: 10px;}
 
 .profile-table img, .profile-table svg {
-	width: 280px;
-	height: 280px;
+	width: 150px;
+	height: 150px;
 	top: 20%;
 	left: 50%;
 	margin: -12px 0 0 -12px;
