@@ -71,9 +71,9 @@ menu = [{"name": "О сайте", "url": "about"},
 
 
 @app.route("/")
-def index():
-    print(url_for('index'))
-    return render_template("index.html", title="Главная страница", menu=menu)
+@app.route("/testdb")
+def testdb():
+    return render_template('testdb.html', menu=dbase.getMenu(), posts=dbase.getPostsAnonce())
 
 
 @app.route("/about")
@@ -144,10 +144,6 @@ def register():
     return render_template("register.html", menu=dbase.getMenu(), title="Регистрация",form=form)
 
 
-@app.route("/testdb")
-def testdb():
-    return render_template('testdb.html', menu=dbase.getMenu(), posts=dbase.getPostsAnonce())
-
 
 @app.teardown_appcontext
 def close_db(error):
@@ -156,6 +152,7 @@ def close_db(error):
 
 
 @app.route("/add_post", methods=["POST", "GET"])
+@login_required
 def addPost():
     if request.method == "POST":
         if len(request.form['name']) > 4 and len(request.form['post']) > 10:
